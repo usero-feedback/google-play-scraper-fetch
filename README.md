@@ -48,9 +48,9 @@ const page2 = await reviews({
 })
 ```
 
-Options: `appId` (required), `lang`, `country`, `sort` (`sort.NEWEST`, `sort.RATING`, `sort.HELPFULNESS`), `num` (default 150), `paginate` (default false, set true to page manually), `nextPaginationToken`, `fetch`.
+Options: `appId` (required), `lang`, `country`, `sort` (`sort.NEWEST`, `sort.RATING`, `sort.HELPFULNESS`), `num` (default 150), `paginate` (default false, set true to page manually), `nextPaginationToken`, `throttleMs`, `fetch`.
 
-With `paginate: false`, the library keeps requesting pages internally until it has `num` reviews or runs out. Each review includes `id`, `userName`, `date` (ISO string), `score`, `text`, `replyText`, `version`, `thumbsUp`, and `criterias`.
+With `paginate: false`, the library keeps requesting pages internally until it has `num` reviews or runs out. Set `throttleMs` to insert a delay in milliseconds between those internal page requests. There is no delay before the first request, and the option does nothing when only one request is made or when you page manually with `paginate: true`. Each review includes `id`, `userName`, `date` (ISO string), `score`, `text`, `replyText`, `version`, `thumbsUp`, and `criterias`.
 
 ## Errors
 
@@ -68,7 +68,7 @@ Google Play has no public API for this data. Both functions wrap an internal, un
 ## Differences from the original
 
 - Only `app()` and `reviews()` are implemented.
-- No throttling option. Rate-limit in your own code if you need it.
+- Throttling is a plain delay (`throttleMs`) between internal page requests, instead of the original's requests-per-second limiter.
 - No `requestOptions` passthrough. Pass a custom `fetch` instead.
 - No persistent cookie jar. Cookies from the first reviews response are reused for follow-up pages within a single `reviews()` call.
 - `memoized()` is not implemented.

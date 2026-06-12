@@ -37,6 +37,13 @@ export interface ReviewsOptions {
 	paginate?: boolean
 	/** Token from a previous paginated call to fetch the next page. */
 	nextPaginationToken?: string | null
+	/**
+	 * Delay in milliseconds between the internal page requests made when num
+	 * exceeds one page and paginate is false. There is no delay before the
+	 * first request, and the option has no effect when only one request is
+	 * made. Default: no delay.
+	 */
+	throttleMs?: number
 	/** Custom fetch implementation. Defaults to the global fetch. */
 	fetch?: typeof fetch
 }
@@ -53,6 +60,7 @@ interface ResolvedReviewsOptions {
 	sort: SortValue
 	num: number
 	paginate: boolean
+	throttleMs: number | undefined
 	fetchFn: typeof fetch | undefined
 }
 
@@ -80,6 +88,7 @@ export async function reviews(options: ReviewsOptions): Promise<ReviewsResult> {
 		sort: sortValue,
 		num: options.num ?? REVIEWS_PER_REQUEST,
 		paginate: options.paginate ?? false,
+		throttleMs: options.throttleMs,
 		fetchFn: options.fetch,
 	}
 
@@ -96,12 +105,19 @@ export async function reviews(options: ReviewsOptions): Promise<ReviewsResult> {
 		const shouldContinue =
 			!resolved.paginate && token !== null && accumulated.length < resolved.num
 		if (!shouldContinue) break
+		if (resolved.throttleMs !== undefined && resolved.throttleMs > 0) {
+			await sleep(resolved.throttleMs)
+		}
 	}
 
 	return {
 		data: accumulated.length > resolved.num ? accumulated.slice(0, resolved.num) : accumulated,
 		nextPaginationToken: token,
 	}
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 interface ReviewsRequestResult {

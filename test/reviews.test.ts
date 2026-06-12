@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PlayScraperParseError } from '../src/errors.js'
-import { extractReviews, parseBatchExecuteResponse } from '../src/reviews.js'
+import { extractReviews, parseBatchExecuteResponse, reviews } from '../src/reviews.js'
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 const body = readFileSync(join(fixturesDir, 'reviews-batchexecute.txt'), 'utf8')
@@ -82,5 +82,80 @@ describe('pagination token', () => {
 		const payload = parseBatchExecuteResponse(body) as unknown[]
 		const tokenContainer = payload[1] as unknown[]
 		expect(typeof tokenContainer[1]).toBe('string')
+	})
+})
+
+/** Build a minimal batchexecute response body with one review per id. */
+function fakeBatchExecuteBody(reviewIds: string[], token: string | null): string {
+	const payload: unknown[] = [reviewIds.map(id => [id]), [null, token]]
+	return ")]}'\n\n" + JSON.stringify([['wrb.fr', 'UsvDTd', JSON.stringify(payload)]])
+}
+
+function fakeFetchForPages(bodies: string[]): { fetchFn: typeof fetch; calls: () => number } {
+	let callCount = 0
+	const fetchFn: typeof fetch = async () => {
+		const responseBody = bodies[callCount]
+		callCount += 1
+		if (responseBody === undefined) {
+			throw new Error(`unexpected request number ${callCount}`)
+		}
+		return new Response(responseBody)
+	}
+	return { fetchFn, calls: () => callCount }
+}
+
+describe('throttleMs', () => {
+	afterEach(() => {
+		vi.useRealTimers()
+	})
+
+	it('delays between internal page requests but not before the first', async () => {
+		vi.useFakeTimers()
+		const { fetchFn, calls } = fakeFetchForPages([
+			fakeBatchExecuteBody(['r1'], 'token-1'),
+			fakeBatchExecuteBody(['r2'], 'token-2'),
+			fakeBatchExecuteBody(['r3'], null),
+		])
+
+		const resultPromise = reviews({ appId: APP_ID, num: 3, throttleMs: 1000, fetch: fetchFn })
+
+		// First request fires immediately, no timer involved.
+		await vi.advanceTimersByTimeAsync(0)
+		expect(calls()).toBe(1)
+
+		// Second request waits the full throttle delay.
+		await vi.advanceTimersByTimeAsync(999)
+		expect(calls()).toBe(1)
+		await vi.advanceTimersByTimeAsync(1)
+		expect(calls()).toBe(2)
+
+		// Third request waits another full delay.
+		await vi.advanceTimersByTimeAsync(1000)
+		expect(calls()).toBe(3)
+
+		const result = await resultPromise
+		expect(result.data.map(review => review.id)).toEqual(['r1', 'r2', 'r3'])
+		expect(result.nextPaginationToken).toBeNull()
+	})
+
+	it('has no effect when only one request is made', async () => {
+		vi.useFakeTimers()
+		const { fetchFn, calls } = fakeFetchForPages([fakeBatchExecuteBody(['r1'], 'token-1')])
+
+		// paginate: true means a single request even though a token comes back.
+		const resultPromise = reviews({
+			appId: APP_ID,
+			num: 1,
+			paginate: true,
+			throttleMs: 1000,
+			fetch: fetchFn,
+		})
+
+		// Resolves with only microtasks, no timer advancement needed.
+		await vi.advanceTimersByTimeAsync(0)
+		const result = await resultPromise
+		expect(calls()).toBe(1)
+		expect(result.data.length).toBe(1)
+		expect(vi.getTimerCount()).toBe(0)
 	})
 })
