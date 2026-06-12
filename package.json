@@ -1,0 +1,55 @@
+{
+	"name": "google-play-scraper-fetch",
+	"version": "0.1.0",
+	"description": "Fetch-only port of google-play-scraper (reviews and app details). Zero dependencies. Runs on Cloudflare Workers, Deno, Bun, Node, and browsers.",
+	"keywords": [
+		"google play",
+		"play store",
+		"scraper",
+		"reviews",
+		"app",
+		"fetch",
+		"cloudflare workers",
+		"deno",
+		"bun"
+	],
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usero-feedback/google-play-scraper-fetch.git"
+	},
+	"homepage": "https://github.com/usero-feedback/google-play-scraper-fetch#readme",
+	"bugs": {
+		"url": "https://github.com/usero-feedback/google-play-scraper-fetch/issues"
+	},
+	"type": "module",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"build": "tsup src/index.ts --format esm,cjs --dts --clean",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:live": "LIVE=1 vitest run"
+	},
+	"devDependencies": {
+		"@types/node": "^25.9.3",
+		"tsup": "^8.3.5",
+		"typescript": "^5.7.2",
+		"vitest": "^3.0.0"
+	}
+}
