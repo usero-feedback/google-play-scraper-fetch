@@ -79,4 +79,4 @@ MIT
 
 ---
 
-Want these reviews clustered and turned into shipped fixes automatically? https://usero.io
+This package was extracted from [Usero](https://usero.io?utm_source=github&utm_campaign=gpsf), which imports Google Play and App Store reviews alongside in-app feedback, Slack, Intercom, and GitHub issues, then clusters all of it into themes and drafts fixes as pull requests.
