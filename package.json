@@ -1,6 +1,6 @@
 {
 	"name": "google-play-scraper-fetch",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Fetch-only port of google-play-scraper (reviews and app details). Zero dependencies. Runs on Cloudflare Workers, Deno, Bun, Node, and browsers.",
 	"keywords": [
 		"google play",
